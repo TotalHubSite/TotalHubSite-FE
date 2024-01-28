@@ -1,0 +1,57 @@
+name: Frontend Build&Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14' # Node.js version
+
+    - name: Install dependencies and build
+      run: |
+        npm install
+        npm run build
+
+    # Build & Push Docker Image
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: Build and push Docker React Project Image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        dockerfile: Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:frontend-latest
+        
+  deploy: 
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: EC2 Docker Compose Update and Run
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        script: |
+          export SPRING_ACTIVE_PROFILE=${{ secrets.SPRING_ACTIVE_PROFILE }}
+          export SPRING_DATABASE_USERNAME=${{ secrets.SPRING_DATABASE_USERNAME }}
+          export SPRING_DATABASE_PASSWORD=${{ secrets.SPRING_DATABASE_PASSWORD }}
+          cd /docker-compose
+          sudo -E docker-compose pull
+          sudo -E docker-compose up -d --force-recreate
