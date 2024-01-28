@@ -19,7 +19,8 @@ const App = () => {
   }, []);
 
   const connect = () => {
-    const socket = new SockJS('http://localhost:8080/ws');
+    // const socket = new SockJS('http://localhost:8080/ws');
+    const socket = new SockJS('http://15.165.144.39:8080/ws');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, onConnected, onError);
   };
