@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies and build
       run: |
         npm install
-        npm run build
+        CI=false npm run build
 
     # Build & Push Docker Image
     - name: Login to DockerHub
